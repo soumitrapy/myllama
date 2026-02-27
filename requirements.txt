@@ -1,0 +1,68 @@
+transformers>=5.2.0
+datasets>=4.5.0
+huggingface_hub>=1.4.1
+gradio>=6.6.0
+peft>=0.18.1
+openai>=2.15.0
+fire>=0.7.0
+tqdm>=4.67.3
+setuptools>=65.5.1
+pyarrow==23.0.1
+beautifulsoup4==4.14.3
+pandas==3.0.1
+pyspark==4.1.1
+scikit-learn==1.8.0
+gcsfs==2025.10.0
+wandb>=0.24.2
+bitsandbytes>=0.49.1
+scipy==1.17.0
+matplotlib
+chardet
+typing-extensions>=4.8.0
+pyyaml==6.0.1
+markupsafe==2.0.1
+#appdirs
+#loralib
+#black
+#black[jupyter]
+#py7zr
+#optimum
+#tabulate
+#unstructured[pdf]
+#codeshield
+# sentencepiece
+# evaluate
+# sentence_transformers
+# rouge_score
+
+
+# From llama-cookbook
+# torch>=2.2
+# accelerate
+# appdirs
+# loralib
+# bitsandbytes
+# black
+# black[jupyter]
+# datasets
+# fire
+# peft
+# transformers>=4.45.1
+# sentencepiece
+# py7zr
+# scipy
+# optimum
+# matplotlib
+# chardet
+# openai
+# typing-extensions>=4.8.0
+# tabulate
+# evaluate
+# rouge_score
+# pyyaml==6.0.1
+# faiss-gpu; python_version < '3.11'
+# unstructured[pdf]
+# sentence_transformers
+# codeshield
+# gradio
+# markupsafe==2.0.1
