@@ -1,6 +1,3 @@
-# Copyright (c) Meta Platforms, Inc. and affiliates.
-# This software may be used and distributed according to the terms of the Llama 2 Community License Agreement.
-
 import inspect
 from dataclasses import asdict
 
@@ -15,9 +12,9 @@ from peft import (
 from transformers import default_data_collator
 from transformers.data import DataCollatorForSeq2Seq
 
-from llama_cookbook.configs import datasets, lora_config, llama_adapter_config, prefix_config, train_config
-from llama_cookbook.data.sampler import LengthBasedBatchSampler, DistributedLengthBasedBatchSampler
-from llama_cookbook.datasets import DATASET_PREPROC
+from uvf.configs import datasets, lora_config, llama_adapter_config, prefix_config, train_config
+#from uvf.data.sampler import LengthBasedBatchSampler, DistributedLengthBasedBatchSampler
+from transformers import TrainingArguments
 
 def update_config(config, **kwargs):
     if isinstance(config, (tuple, list)):
@@ -36,8 +33,8 @@ def update_config(config, **kwargs):
                     else:
                         # In case of specialized config we can warn user
                         print(f"Warning: {config_name} does not accept parameter: {k}")
-            elif isinstance(config, train_config):
-                print(f"Warning: unknown parameter {k}")
+            # elif isinstance(config, train_config):
+            #     print(f"Warning: unknown parameter {k}")
 
 
 def generate_peft_config(train_config, kwargs):
@@ -63,60 +60,64 @@ def generate_peft_config(train_config, kwargs):
     return peft_config
 
 
-def generate_dataset_config(train_config, kwargs):
-    names = tuple(DATASET_PREPROC.keys())
+def get_trainer_args(train_config, **kwargs):
+    trainer_args = {
+        "output_dir": train_config.output_dir,
+        "num_train_epochs": train_config.num_epochs,
+        "per_device_train_batch_size": train_config.batch_size_training,
+        "per_device_eval_batch_size": train_config.val_batch_size,
+        "gradient_accumulation_steps": train_config.gradient_accumulation_steps,
+        "evaluation_strategy": "steps" if train_config.run_validation else "no",
+        "eval_steps": train_config.eval_steps if train_config.run_validation else None,
+        "save_strategy": "steps",
+        "save_steps": train_config.save_steps,
+        "save_total_limit": train_config.save_total_limit,
+        "load_best_model_at_end": train_config.load_best_model_at_end,
+        "metric_for_best_model": train_config.metric_for_best_model,
+        "greater_is_better": train_config.greater_is_better,
+        "logging_dir": train_config.logging_dir,
+        "logging_steps": train_config.logging_steps,
+    }
+    trainer_args.update(kwargs)
+    return TrainingArguments(**trainer_args)
 
-    assert train_config.dataset in names, f"Unknown dataset: {train_config.dataset}"
+# def generate_dataset_config(train_config, kwargs):
+#     names = tuple(DATASET_PREPROC.keys())
 
-    dataset_config = {k:v for k, v in inspect.getmembers(datasets)}[train_config.dataset]()
+#     assert train_config.dataset in names, f"Unknown dataset: {train_config.dataset}"
 
-    update_config(dataset_config, **kwargs)
+#     dataset_config = {k:v for k, v in inspect.getmembers(datasets)}[train_config.dataset]()
 
-    return  dataset_config
+#     update_config(dataset_config, **kwargs)
 
-
-def get_dataloader_kwargs(train_config, dataset, dataset_processer, mode):
-    kwargs = {}
-    batch_size = train_config.batch_size_training if mode=="train" else train_config.val_batch_size
-    if train_config.batching_strategy == "padding":
-        if train_config.enable_fsdp:
-            kwargs["batch_sampler"] = DistributedLengthBasedBatchSampler(
-                dataset,
-                batch_size=batch_size,
-                rank=dist.get_rank(),
-                num_replicas=dist.get_world_size(),
-                shuffle=mode=="train",
-            )
-        else:
-            kwargs["batch_sampler"] = LengthBasedBatchSampler(dataset, batch_size, drop_last=True, shuffle=mode=="train")
-        kwargs["collate_fn"] = DataCollatorForSeq2Seq(dataset_processer)
-    elif train_config.batching_strategy == "packing":
-        if train_config.enable_fsdp:
-            kwargs["sampler"] = DistributedSampler(
-            dataset,
-            rank=dist.get_rank(),
-            num_replicas=dist.get_world_size(),
-            shuffle=mode=="train",
-            drop_last=True,
-        )
-        kwargs["batch_size"] = batch_size
-        kwargs["drop_last"] = True
-        kwargs["collate_fn"] = default_data_collator
-    else:
-        raise ValueError(f"Unknown batching strategy: {train_config.batching_strategy}")
-    return kwargs
+#     return  dataset_config
 
 
-def check_fsdp_config(fsdp_config):
-    VALID_TYPES = (StateDictType.SHARDED_STATE_DICT, StateDictType.FULL_STATE_DICT)
-    if isinstance(fsdp_config.checkpoint_type, str):
-        str_to_obj = {
-            "StateDictType.SHARDED_STATE_DICT": StateDictType.SHARDED_STATE_DICT,
-            "StateDictType.FULL_STATE_DICT": StateDictType.FULL_STATE_DICT,
-        }
-        if fsdp_config.checkpoint_type in str_to_obj:
-            fsdp_config.checkpoint_type = str_to_obj[fsdp_config.checkpoint_type]
+# def get_dataloader_kwargs(train_config, dataset, dataset_processer, mode):
+#     kwargs = {}
+#     batch_size = train_config.batch_size_training if mode=="train" else train_config.val_batch_size
+#     if train_config.batching_strategy == "padding":
+#         kwargs["batch_sampler"] = LengthBasedBatchSampler(dataset, batch_size, drop_last=True, shuffle=mode=="train")
+#         kwargs["collate_fn"] = DataCollatorForSeq2Seq(dataset_processer)
+#     elif train_config.batching_strategy == "packing":
+#         kwargs["batch_size"] = batch_size
+#         kwargs["drop_last"] = True
+#         kwargs["collate_fn"] = default_data_collator
+#     else:
+#         raise ValueError(f"Unknown batching strategy: {train_config.batching_strategy}")
+#     return kwargs
+
+
+# def check_fsdp_config(fsdp_config):
+#     VALID_TYPES = (StateDictType.SHARDED_STATE_DICT, StateDictType.FULL_STATE_DICT)
+#     if isinstance(fsdp_config.checkpoint_type, str):
+#         str_to_obj = {
+#             "StateDictType.SHARDED_STATE_DICT": StateDictType.SHARDED_STATE_DICT,
+#             "StateDictType.FULL_STATE_DICT": StateDictType.FULL_STATE_DICT,
+#         }
+#         if fsdp_config.checkpoint_type in str_to_obj:
+#             fsdp_config.checkpoint_type = str_to_obj[fsdp_config.checkpoint_type]
         
-    if not fsdp_config.checkpoint_type in VALID_TYPES:
-        raise ValueError(f"Invalid checkpoint_type {fsdp_config.checkpoint_type}")
+#     if not fsdp_config.checkpoint_type in VALID_TYPES:
+#         raise ValueError(f"Invalid checkpoint_type {fsdp_config.checkpoint_type}")
     

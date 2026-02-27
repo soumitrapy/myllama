@@ -1,6 +1,3 @@
-# Copyright (c) Meta Platforms, Inc. and affiliates.
-# This software may be used and distributed according to the terms of the Llama 2 Community License Agreement.
-
 import os
 import time
 import yaml
@@ -19,11 +16,14 @@ from transformers import LlamaTokenizer
 import json
 
 
-from llama_cookbook.model_checkpointing import save_fsdp_model_checkpoint_full, save_model_and_optimizer_sharded, save_optimizer_checkpoint, save_peft_checkpoint, save_model_checkpoint
-from llama_cookbook.policies import fpSixteen,bfSixteen, get_llama_wrapper
-from llama_cookbook.utils.memory_utils import MemoryTrace
+from uvf.utils.memory_utils import MemoryTrace
 from accelerate.utils import is_xpu_available, is_ccl_available
-from llama_cookbook.utils.flop_utils import FlopMeasure
+from uvf.utils.flop_utils import FlopMeasure
+
+from transformers import TrainerCallback
+from uvf.utils.cloud_utils import upload_directory_with_gcsfs
+
+
 def set_tokenizer_params(tokenizer: LlamaTokenizer):
     tokenizer.pad_token_id = 0
     tokenizer.padding_side = "left"
@@ -585,3 +585,40 @@ def save_to_json(output_filename, train_step_loss, train_epoch_loss, train_step_
     }
     with open(output_filename, "w") as f:
         json.dump(metrics_data, f)
+
+def get_hf_trainer_args(train_config, **kwargs):
+    """
+    This function generates the arguments for Hugging Face Trainer based on the train_config and other kwargs.
+
+    Args:
+        train_config: The training configuration object containing various training parameters.
+        **kwargs: Additional keyword arguments that may be needed for generating the Trainer arguments.
+    """
+    from transformers import TrainingArguments
+
+    hf_trainer_args = {
+        "output_dir": train_config.output_dir,
+        "num_train_epochs": train_config.num_epochs,
+        "per_device_train_batch_size": train_config.per_device_train_batch_size,
+        "per_device_eval_batch_size": train_config.per_device_eval_batch_size,
+        "gradient_accumulation_steps": train_config.gradient_accumulation_steps,
+        "evaluation_strategy": "epoch" if train_config.run_validation else "no",
+        "save_strategy": "epoch" if train_config.save_model else "no",
+        "logging_strategy": "epoch",
+        "load_best_model_at_end": train_config.save_model and train_config.run_validation,
+        "metric_for_best_model": "eval_loss",
+        "greater_is_better": False,
+    }
+
+    return TrainingArguments(**hf_trainer_args)
+
+class GCSUploadCallback(TrainerCallback):
+    def on_save(self, args, state, control, **kwargs):
+        # args.output_dir is the checkpoint directory
+        checkpoint_dir = args.output_dir
+        # Example: upload to GCS after each checkpoint save
+        upload_directory_with_gcsfs(
+            checkpoint_dir,
+            "intlctlg-cdq",
+            f"unified_qc/dev/s0d0jkl/checkpoints/{checkpoint_dir.split('/')[-1]}"
+        )
