@@ -16,12 +16,12 @@ from transformers import LlamaTokenizer
 import json
 
 
-from uvf.utils.memory_utils import MemoryTrace
+from llama_cookbook.utils.memory_utils import MemoryTrace
 from accelerate.utils import is_xpu_available, is_ccl_available
-from uvf.utils.flop_utils import FlopMeasure
+from llama_cookbook.utils.flop_utils import FlopMeasure
 
 from transformers import TrainerCallback
-from uvf.utils.cloud_utils import upload_directory_with_gcsfs
+from llama_cookbook.utils.cloud_utils import upload_directory_with_gcsfs
 
 
 def set_tokenizer_params(tokenizer: LlamaTokenizer):

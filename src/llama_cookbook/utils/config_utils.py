@@ -12,8 +12,8 @@ from peft import (
 from transformers import default_data_collator
 from transformers.data import DataCollatorForSeq2Seq
 
-from uvf.configs import datasets, lora_config, llama_adapter_config, prefix_config, train_config
-#from uvf.data.sampler import LengthBasedBatchSampler, DistributedLengthBasedBatchSampler
+from llama_cookbook.configs import datasets, lora_config, llama_adapter_config, prefix_config, train_config
+#from llama_cookbook.data.sampler import LengthBasedBatchSampler, DistributedLengthBasedBatchSampler
 from transformers import TrainingArguments
 
 def update_config(config, **kwargs):

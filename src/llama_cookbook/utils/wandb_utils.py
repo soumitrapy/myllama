@@ -1,9 +1,9 @@
 import wandb
-from uvf.configs import (
+from llama_cookbook.configs import (
     train_config as TRAIN_CONFIG,
     wandb_config as WANDB_CONFIG,
 )
-from uvf.utils.config_utils import update_config
+from llama_cookbook.utils.config_utils import update_config
 from dataclasses import asdict
 def setup_wandb(train_config, **kwargs):
     try:

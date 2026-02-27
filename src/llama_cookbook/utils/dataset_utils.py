@@ -1,7 +1,7 @@
 import torch
 
-from uvf.datasets.chat_dataset import ChatDataset, chat_collate_fn
-from uvf.utils.cloud_utils import get_cloud_path, LoadFromCloud
+from llama_cookbook.datasets.chat_dataset import ChatDataset, chat_collate_fn
+from llama_cookbook.utils.cloud_utils import get_cloud_path, LoadFromCloud
 import random
 
 def get_preprocessed_dataset(tokenizer, dataset_config):
